@@ -2,3 +2,4 @@ manga-py
 flask
 pillow
 lxml
+Flask-Mail

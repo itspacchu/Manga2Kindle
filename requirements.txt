@@ -1,0 +1,4 @@
+manga-py
+flask
+pillow
+lxml

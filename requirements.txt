@@ -3,3 +3,4 @@ flask
 pillow
 lxml
 Flask-Mail
+KindleComicConverter

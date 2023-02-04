@@ -31,39 +31,81 @@
     <!-- Reference: https://www.gethalfmoon.com/docs/sticky-alerts-toasts -->
     <div class="sticky-alerts"></div>
 
-    <!-- Navbar start -->
-    <nav class="navbar">
-      <!-- Reference: https://www.gethalfmoon.com/docs/navbar -->
-    </nav>
-    <!-- Navbar end -->
-
-    <!-- Sidebar start -->
-    <div class="sidebar">
-      <!-- Reference: https://www.gethalfmoon.com/docs/sidebar -->
-    </div>
     <!-- Content wrapper start -->
     <div class="content-wrapper">
-      <div class="container-fluid">
+      <div class="container-fluid w-400 mw-full">
          <div class="content">
             <center>
+              <h1 class="content-title">
+                Pacchu's Manga2Kindle
+              </h1>
+              {% if saysomething %}
+              <br>
+              <div class="alert alert-success" role="alert">
+                <h4 class="alert-heading">Added to queue</h4>
+              {{ saysomething }}
+              </div>
+              <br>
+              {% endif %}
+
+              {% if err %}
+              <br>
+              <!--can use flask to send classes as well :/-->
+              <div class="alert alert-danger" role="alert">
+                <h4 class="alert-heading">Something went wrong!</h4>
+              {{ err }}
+              </div>
+              <br>
+              {% endif %}
             <form action="{{ url_for("main")}}" method="POST" class="w-400 mw-full"> <!-- w-400 = width: 40rem (400px), mw-full = max-width: 100% -->
                   <input type="url" class="form-control" name="manga-link" id="manga-link" placeholder="https://www.webtoons.com/en/comedy/everywhere-and-nowhere/list?title_no=1598" required="required">
 
                   <input type="number" class="form-control" name="chapter" id="chapter" placeholder="0 (default)">
 
                   <input type="email" class="form-control" name="email" id="email" placeholder="uwu@kindle.com">
-
+                  <br>
                   <button class="btn" type="submit">Send</button>
                   <hr>
             </form>
+            <p>
+              Consider adding <code>panifically@riseup.net</code> in your <a href="https://www.amazon.in/hz/mycd/myx#/home/settings/payment">amazon email preferences</a>
+             </p>
+             <hr>
+
+             <details class="collapse-panel w-400 mw-full"> <!-- w-400 = width: 40rem (400px), mw-full = max-width: 100% -->
+              <summary class="collapse-header">
+                Not recieving email?
+              </summary>
+              <div class="collapse-content">
+                The website is still in alpha stage with very limited resources so consider waiting for atleast 5-10 minutes, 
+                <br>
+                If manga's chapter size is more than 25MB email is likely would've been dropped
+                <br>
+                Consider adding <code>panifically@riseup.net</code> in your <a href="https://www.amazon.in/hz/mycd/myx#/home/settings/payment">amazon email preferences</a>
+              </div>
+            </details>
+
+            <details class="collapse-panel w-400 mw-full"> <!-- w-400 = width: 40rem (400px), mw-full = max-width: 100% -->
+              <summary class="collapse-header">
+                Source code?
+              </summary>
+              <div class="collapse-content">
+                  Still a work in progress <a href="https://gitlab.com/itspacchu/manga_kindle">https://gitlab.com/itspacchu/manga_kindle</a>
+              </div>
+            </details>
+
+            <br>
+            <hr>
+            <br>
+             <footer>
+              This project uses <a href="https://github.com/manga-py/manga-py">manga-py</a> which supports <a href="https://manga-py.github.io/manga-py/#resources-list">these sources</a>
+             </footer>
          </center>
          </div>
       </div>
     </div>
-    <!-- Content wrapper end -->
 
   </div>
-  <!-- Page wrapper end -->
 
   <!-- Halfmoon JS -->
   <script src="https://cdn.jsdelivr.net/npm/halfmoon@1.1.1/js/halfmoon.min.js"></script>

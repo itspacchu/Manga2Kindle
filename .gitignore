@@ -1,2 +1,4 @@
 # folders
 venv/
+static/
+__pycache__/

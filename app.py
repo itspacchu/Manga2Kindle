@@ -1,10 +1,23 @@
 from flask import Flask, request, render_template
-from flask_mail import Mail,Message
 from manga_py.util import run_util
 import smtplib, ssl
 from threading import Thread
 import subprocess,os
 import uuid
+
+import sys
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+
+# Set up email details
+smtp_server = 'mail.riseup.net'
+smtp_port = 587
+sender_email = 'panifically@riseup.net'
+sender_password = ''
+recipient_email = 'prashantn@riseup.net'
+
 
 app = Flask(__name__)
 app.config.update(
@@ -16,16 +29,27 @@ app.config.update(
 )
 
 ERRCOUNT = 3
-
-mail = Mail(app)
 threaded_queue = [] #this is so bad
+
+def send_mail(body,subject,recipient_email,filename):
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = recipient_email
+    msg['Subject'] = 'File attachment'
+
+    with open(filename, 'rb') as f:
+        attachment = MIMEApplication(f.read(), _subtype='epub')
+        attachment.add_header('Content-Disposition', 'attachment', filename=filename)
+        msg.attach(attachment)
+
+    with smtplib.SMTP(smtp_server, smtp_port) as smtp:
+        smtp.starttls()
+        smtp.login(sender_email, sender_password)
+        smtp.send_message(msg)
+
 
 #TODO do a threaded queue to serve one manga request at once [Celery?]
 def fetch_and_deliver(__request__,URL,EMAIL,START_VOLUME,GET_VOLUME):
-    with app.test_request_context():
-        from flask import request
-        request = __request__
-
         gen_name = str(uuid.uuid1())   
         test_args = {
             'url': URL, 
@@ -80,14 +104,7 @@ def fetch_and_deliver(__request__,URL,EMAIL,START_VOLUME,GET_VOLUME):
         if("webtoon" in URL):
             is_webtoon = "-w"
         subprocess.run(["kcc-c2e",is_webtoon,"-p","KPW","-f","EPUB",f"static/{gen_name}/{files[0]}"])
-        msg = Message(files[0],
-                    body=f"Your requested manga from {URL} is delivered\n Cheers, pacchu",
-                    sender=app.config['MAIL_USERNAME'],
-                    recipients=[EMAIL]
-                    )
-        with app.open_resource(f"static/{gen_name}/{files[0]}".replace(".cbz",".epub")) as fp:
-            msg.attach(f"{files[0]}".replace(".cbz",".epub"), 'application/epub+zip', fp.read())
-        mail.send(msg)
+        send_mail(f"Your requested manga from {URL} is delivered\n Cheers, pacchu",f"Your requested manga from {URL} is delivered",EMAIL,f"static/{gen_name}/{files[0]}".replace(".cbz",".epub"))
         print(f"Sent mail to mailto://{EMAIL}")
         threaded_queue.pop()
         return "Ok"
@@ -98,10 +115,11 @@ def main():
         return render_template("index.html")
 
     if request.method == 'POST':
+        
         URL = request.form.get('manga-link')
         START_VOLUME = int(request.form.get('chapter'))
         EMAIL = request.form.get('email')
-
+        print(f"Got a request for {URL} from {EMAIL} for {START_VOLUME} chapters")
         if(START_VOLUME < 0):
             return render_template("index.html",err="Use proper numbers for chapter count. Can't afford a time machine") 
         if("@" not in EMAIL or len(EMAIL) < 1):

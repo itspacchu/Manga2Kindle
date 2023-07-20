@@ -8,4 +8,8 @@ COPY . .
 
 RUN apt update && apt install -y p7zip-full && pip3 install -r requirements.txt && mkdir -p static
 
-CMD [ "flask","run","--host=0.0.0.0" ]
+ENV URL="https://www.webtoons.com/en/action/samurai-no-tora/list?title_no=3654"
+ENV EMAIL="prashantn@riseup.net"
+ENV START=1
+
+CMD [ "python3","app.py"]

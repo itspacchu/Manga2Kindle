@@ -1,6 +1,4 @@
-manga-py
-flask
+manga-py==1.33.2
 pillow
 lxml
-Flask-Mail
-KindleComicConverter
+KindleComicConverter-headless

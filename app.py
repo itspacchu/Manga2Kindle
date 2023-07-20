@@ -1,9 +1,9 @@
-from flask import Flask, request, render_template
 from manga_py.util import run_util
 import smtplib, ssl
 from threading import Thread
 import subprocess,os
 import uuid
+import argparse
 
 import sys
 import smtplib
@@ -19,19 +19,17 @@ sender_password = ''
 recipient_email = 'prashantn@riseup.net'
 
 
-app = Flask(__name__)
-app.config.update(
-    MAIL_SERVER='mail.riseup.net',
-    MAIL_PORT=465,
-    MAIL_USE_SSL=True,
-    MAIL_USERNAME = 'panifically@riseup.net',
-    MAIL_PASSWORD = ''
-)
-
 ERRCOUNT = 3
-threaded_queue = [] #this is so bad
+
+def dictionary_to_parser(dictionary):
+    parser = argparse.ArgumentParser()
+    for key, value in dictionary.items():
+        parser.add_argument(f'--{key}', default=value)
+    return parser
+
 
 def send_mail(body,subject,recipient_email,filename):
+    print(f"Sending to {recipient_email}")
     msg = MIMEMultipart()
     msg['From'] = sender_email
     msg['To'] = recipient_email
@@ -44,22 +42,25 @@ def send_mail(body,subject,recipient_email,filename):
 
     with smtplib.SMTP(smtp_server, smtp_port) as smtp:
         smtp.starttls()
-        smtp.login(sender_email, sender_password)
-        smtp.send_message(msg)
+        print(smtp.login(sender_email, sender_password))
+        print(smtp.send_message(msg))
+
+
+
 
 
 #TODO do a threaded queue to serve one manga request at once [Celery?]
-def fetch_and_deliver(__request__,URL,EMAIL,START_VOLUME,GET_VOLUME):
-        gen_name = str(uuid.uuid1())   
+def fetch_and_deliver(URL,EMAIL,START_VOLUME,GET_VOLUME):
+        gen_name = str(uuid.uuid1())
         test_args = {
             'url': URL, 
             'name': gen_name, 
-            'destination': 'static', 
+            'destination': '/tmp/static', 
             'no_progress': False, 
             'global_progress': False, 
             'arguments': None,
-            'skip_volumes': START_VOLUME, 
-            'max_volumes': GET_VOLUME, 
+            'skip_volumes': int(START_VOLUME), 
+            'max_volumes': int(GET_VOLUME), 
             'user_agent': None, 
             'cookies': None, 
             'proxy': None, 
@@ -92,44 +93,27 @@ def fetch_and_deliver(__request__,URL,EMAIL,START_VOLUME,GET_VOLUME):
             'debug_version': None, 
             'quiet': False
         }
-        for attempt in range(ERRCOUNT):
-            try:
-                run_util(test_args)
-                break
-            except:
-                if(attempt == ERRCOUNT-1):
-                    return "Failed"
-        files = os.listdir(f'static/{gen_name}/')
+        #run_util(dictionary_to_parser(test_args))
+        run_util(test_args)
+        # for attempt in range(ERRCOUNT):
+        #     try:
+        #         run_util(test_args)
+        #         break
+        #     except:
+        #         if(attempt == ERRCOUNT-1):
+        #             return "Failed"
+        files = os.listdir(f'/tmp/static/{gen_name}/')
         is_webtoon = "-m"
         if("webtoon" in URL):
             is_webtoon = "-w"
-        subprocess.run(["kcc-c2e",is_webtoon,"-p","KPW","-f","EPUB",f"static/{gen_name}/{files[0]}"])
-        send_mail(f"Your requested manga from {URL} is delivered\n Cheers, pacchu",f"Your requested manga from {URL} is delivered",EMAIL,f"static/{gen_name}/{files[0]}".replace(".cbz",".epub"))
+        os.system(" ".join(["kcc-c2e",is_webtoon,"-p","KPW","-f","EPUB",f"/tmp/static/{gen_name}/{files[0]}"]))
+        send_mail(f"Your requested manga from {URL} is delivered\n Cheers, pacchu",f"Your requested manga from {URL} is delivered",EMAIL,f"/tmp/static/{gen_name}/{files[0]}".replace(".cbz",".epub"))
         print(f"Sent mail to mailto://{EMAIL}")
-        threaded_queue.pop()
+        os.remove(f"/tmp/static/{gen_name}/{files[0]}".replace(".cbz",".epub"))
         return "Ok"
 
-@app.route("/",methods=["GET","POST"])
-def main():
-    if request.method == 'GET':
-        return render_template("index.html")
-
-    if request.method == 'POST':
-        
-        URL = request.form.get('manga-link')
-        START_VOLUME = int(request.form.get('chapter'))
-        EMAIL = request.form.get('email')
-        print(f"Got a request for {URL} from {EMAIL} for {START_VOLUME} chapters")
-        if(START_VOLUME < 0):
-            return render_template("index.html",err="Use proper numbers for chapter count. Can't afford a time machine") 
-        if("@" not in EMAIL or len(EMAIL) < 1):
-            return render_template("index.html",err="null@null.null not found? Do you have a kindle?") 
-        GET_VOLUME = 1
-        do_in_thread = Thread(target=fetch_and_deliver,args=(request,URL,EMAIL,START_VOLUME,GET_VOLUME))
-        do_in_thread.start()
-        threaded_queue.append(do_in_thread)
-        return render_template("index.html",saysomething=f"Your request has been recorded and will be delivered\nCurrently {len(threaded_queue)} pending") 
-
 if(__name__=="__main__"):
-    app.run("0.0.0.0",8090)
-    main()
+    URL = os.environ["URL"]
+    EMAIL = os.environ["EMAIL"]
+    START = os.environ["START"]
+    fetch_and_deliver(URL,EMAIL,START,1)

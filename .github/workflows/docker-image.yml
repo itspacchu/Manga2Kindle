@@ -16,3 +16,5 @@ jobs:
     - uses: actions/checkout@v3
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag registry.gitlab.com/itspacchu/manga_kindle:$(date +%s)
+    - name: Push the Docker image
+      run: docker login --login itspacchu --password ${{ secrets.GITLAB_TOKEN }} registry.gitlab.com && docker push registry.gitlab.com/itspacchu/manga_kindle:$(date +%s)

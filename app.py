@@ -15,7 +15,7 @@ from email.mime.application import MIMEApplication
 smtp_server = 'mail.riseup.net'
 smtp_port = 587
 sender_email = 'panifically@riseup.net'
-sender_password = ''
+sender_password = os.environ["LOGIN_PASSWORD"]
 recipient_email = 'prashantn@riseup.net'
 
 

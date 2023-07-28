@@ -1,0 +1,49 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    # Install and set up Buildx (you may need to adapt this part based on the availability of Buildx on GitHub Actions)
+    - name: Set up Docker Buildx
+      run: |
+        docker build --help
+        if [ ! -x "$(command -v docker)" ]; then
+          curl -fsSL https://get.docker.com -o get-docker.sh
+          sh get-docker.sh
+        fi
+        docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+        docker buildx create --use --name mybuilder
+        docker buildx inspect --bootstrap
+
+    # Build the Docker image for ARM
+    - name: Build the Docker image for ARM
+      run: |
+        docker buildx build . \
+          --file Dockerfile \
+          --tag registry.gitlab.com/itspacchu/manga_kindle:arm-$GITHUB_RUN_NUMBER \
+          --platform linux/arm64,linux/arm/v7
+      env:
+        DOCKER_CLI_BUILD: 1
+
+    # Push the Docker image
+    - name: Push the Docker image
+      run: |
+        docker login --username itspacchu --password ${{ secrets.GITLAB_TOKEN }} registry.gitlab.com
+        docker buildx build . --file Dockerfile \
+          --tag registry.gitlab.com/itspacchu/manga_kindle:$GITHUB_RUN_NUMBER \
+          --platform linux/arm64,linux/arm/v7 \
+          --push
+      env:
+        DOCKER_CLI_BUILD: 1
